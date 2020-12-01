@@ -138,13 +138,13 @@ bool visited[MAX_NODES];
 int shortestDistance[MAX_NODES];
 Node* previousNode[MAX_NODES];
 
-void setupDijkstra() {
+void setupDijkstra(int startNodeIndex) {
   for(int i=0; i<MAX_NODES; i++) {
     visited[i] = false;
     shortestDistance[i] = INT_MAX;
   }
   //Loopback distance.
-  shortestDistance[0] = 0;
+  shortestDistance[startNodeIndex] = 0;
 }
 
 void visit(Node* src, Node* dst) {
@@ -243,14 +243,14 @@ void visit(Node* src, Node* dst) {
 }
 
 void printDijkstraTable() {
-  printf("%16s | %16s | %16s |\n", "Node", "Distance", "Previous");
+  printf("%16s | %16s | %16s |\n", "Destination", "Distance", "Previous");
   for(int i = 0; i < MAX_NODES; i++) {
     printf("%16p | %16i | %16p\n", &nodes[i], shortestDistance[i], previousNode[i]);
   }
 }
 
 void printDijkstraTableNames() {
-  printf("%16s | %16s | %16s |\n", "Node", "Distance", "Previous");
+  printf("%16s | %16s | %16s |\n", "Destination", "Distance", "Previous");
   for(int i = 0; i < MAX_NODES; i++) {
     printf("%16c | %16i | %16c\n", nodes[i].name, shortestDistance[i], previousNode[i] == NULL ? '-' : previousNode[i]->name);
   }
@@ -273,8 +273,12 @@ void setupNodes() {
 int main() {
 
   char filename[256];
-  char startNode;
-  char endNode;
+  char startNodeName;
+  char endNodeName;
+  int startNodeIndex;
+  int endNodeIndex;
+  Node* startNode;
+  Node* endNode;
 
   printf("Please enter path to matrix file: ");
   fgets(filename, 256, stdin);
@@ -285,13 +289,17 @@ int main() {
   }
 
   printf("Start node: ");
-  startNode = getchar(); getchar();
+  startNodeName = getchar(); getchar();
+  startNodeIndex = startNodeName - 65;
+  startNode = &nodes[startNodeIndex];
 
   printf("End node: ");
-  endNode = getchar(); getchar();
+  endNodeName = getchar(); getchar();
+  endNodeIndex = endNodeName - 65;
+  endNode = &nodes[endNodeIndex];
 
   printf("Matrix file: %s\n", filename);
-  printf("Calculating shortest distance from %c to %c.\n", startNode, endNode);
+  printf("Calculating shortest distance from %c to %c.\n", startNodeName, endNodeName);
 
   setupNodes();
   printf("\n");
@@ -301,8 +309,9 @@ int main() {
   printf("%s\n", rcodeMsg(code));
   fclose(sourceFile);
 
-  setupDijkstra();
-  visit(&nodes[startNode-65], &nodes[endNode-65]);
+  setupDijkstra(startNodeIndex);
+  visit(startNode, endNode);
+  printf("Shortest distance from %c to %c is %d.\n", startNodeName, endNodeName, shortestDistance[endNodeIndex]);
   printDijkstraTableNames();
 
   return 0;
