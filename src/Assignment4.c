@@ -15,7 +15,7 @@
 
 #include <sys/queue.h>
 
-#define		MAX_NODES				                  10
+#define		MAX_NODES				                  26
 
 const	char*	FILEPATH                      =	"dat/network_matrix";
 const	int	  MAX_SOURCELINE_SIZE		        =	256;
@@ -53,7 +53,7 @@ struct Link {
 };
 
 struct Node {
-	char value;
+	char name;
 	Link links[MAX_NODES];
 	int	numNeighbors;
 };
@@ -62,6 +62,8 @@ Node	nodes[MAX_NODES];
 
 RCODE processSourceLine(const char[MAX_SOURCELINE_SIZE]);
 RCODE storeMatrixValue(int,int,char*);
+void printDijkstraTable();
+void printDijkstraTableNames();
 
 /* Parse source file line by line. */
 RCODE parseSourceFile(FILE* file) {
@@ -127,7 +129,7 @@ RCODE storeMatrixValue(int row, int col, char* value) {
   link->destination = dst;
   link->value = linkValue;
 
-  //printf("Link Created: (%14p) to (%14p) with value %3i\n", src, dst, linkValue);
+  printf("Link Created: (%14p) to (%14p) with value %3i\n", src, dst, linkValue);
 
   return OK;
 }
@@ -141,6 +143,7 @@ void setupDijkstra() {
     visited[i] = false;
     shortestDistance[i] = INT_MAX;
   }
+  //Loopback distance.
   shortestDistance[0] = 0;
 }
 
@@ -195,6 +198,9 @@ void visit(Node* src, Node* dst) {
     }
 
     /* Update neighbor distances */
+    if(shortestDistance[srcIndex] == INT_MAX) {
+      shortestDistance[srcIndex] = 0;
+    }    
     int totalPathDistance = shortestDistance[srcIndex] + link->value;
     printf("Known distance to %14p is %i.\n", link->destination, shortestDistance[neighborIndex]);
     printf("Distance with this link is %i which is less. Updating table.\n", totalPathDistance);
@@ -215,7 +221,6 @@ void visit(Node* src, Node* dst) {
   if(!shortestLink.destination) {
     int dstIndex = dst - &nodes[0];
     int shortestDistanceToDst = shortestDistance[dstIndex];
-    printf("Shortest distance from %p to %p is %i.\n", src, dst, shortestDistanceToDst);
 
     printf("Shortest path (reverse order):\n");
     Node* hop = &nodes[dstIndex];
@@ -244,15 +249,61 @@ void printDijkstraTable() {
   }
 }
 
+void printDijkstraTableNames() {
+  printf("%16s | %16s | %16s |\n", "Node", "Distance", "Previous");
+  for(int i = 0; i < MAX_NODES; i++) {
+    printf("%16c | %16i | %16c\n", nodes[i].name, shortestDistance[i], previousNode[i] == NULL ? '-' : previousNode[i]->name);
+  }
+}
+
+void setupNodes() {
+  //Give nodes a name from A-Z and set default link value to INT_MAX
+  for(int i=0; i<MAX_NODES; i++) {
+    Node* node = &nodes[i];
+    node->name = 65 + i;
+    printf("Node %14p is named %c\n", node, node->name);
+    for(int j=0; j<MAX_NODES; j++) {
+      Link* link = &node->links[j];
+      link->value = INT_MAX;
+    }
+  }
+  printf("\n");
+}
+
 int main() {
-  sourceFile = fopen(FILEPATH, "rb");
+
+  char filename[256];
+  char startNode;
+  char endNode;
+
+  printf("Please enter path to matrix file: ");
+  fgets(filename, 256, stdin);
+  filename[strlen(filename) - 1] = '\0';
+
+  if(filename[0] == '\0') {
+    sprintf(filename, "%s", FILEPATH);
+  }
+
+  printf("Start node: ");
+  startNode = getchar(); getchar();
+
+  printf("End node: ");
+  endNode = getchar(); getchar();
+
+  printf("Matrix file: %s\n", filename);
+  printf("Calculating shortest distance from %c to %c.\n", startNode, endNode);
+
+  setupNodes();
+  printf("\n");
+
+  sourceFile = fopen(filename, "rb");
   RCODE code = parseSourceFile(sourceFile);
   printf("%s\n", rcodeMsg(code));
   fclose(sourceFile);
 
   setupDijkstra();
-  visit(&nodes[0], &nodes[3]);
-  printDijkstraTable();
+  visit(&nodes[startNode-65], &nodes[endNode-65]);
+  printDijkstraTableNames();
 
   return 0;
 }
